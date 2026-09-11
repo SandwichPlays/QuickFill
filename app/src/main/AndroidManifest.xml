@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:name=".QuickFillApplication"
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -24,32 +24,60 @@
             </intent-filter>
         </activity>
 
+        <!-- Floating Quick Picker Activity launched by the Quick Settings Tile -->
         <activity
-            android:name=".ui.AutofillTrampolineActivity"
+            android:name=".ui.QuickPickerActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
-
+        <!-- General Quick Picker Tile -->
         <service
-            android:name=".service.MyQuickFillService"
+            android:name=".service.QuickCopyTileService"
             android:exported="true"
-            android:permission="android.permission.BIND_AUTOFILL_SERVICE">
+            android:icon="@drawable/ic_tile_picker"
+            android:label="@string/tile_picker_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
-                <action android:name="android.service.autofill.AutofillService" />
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
-            <meta-data
-                android:name="android.autofill"
-                android:resource="@xml/autofill_service_config" />
+        </service>
+
+        <!-- Direct-Copy Slot 1 Tile -->
+        <service
+            android:name=".service.Slot1TileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_slot1"
+            android:label="@string/tile_slot1_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Direct-Copy Slot 2 Tile -->
+        <service
+            android:name=".service.Slot2TileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_slot2"
+            android:label="@string/tile_slot2_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Direct-Copy Slot 3 Tile -->
+        <service
+            android:name=".service.Slot3TileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_slot3"
+            android:label="@string/tile_slot3_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
         </service>
 
     </application>
-
-    <queries>
-        <!--        <package android:name="com.google.android.apps.messaging" />-->
-        <!--        <package android:name="com.whatsapp" />-->
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-        </intent>
-    </queries>
 
 </manifest>

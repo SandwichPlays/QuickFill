@@ -1,103 +1,70 @@
 package com.byteutility.dev.quickfill.data.repository
 
-import android.content.Context
-import android.graphics.Bitmap
-import androidx.core.graphics.drawable.toBitmap
-import com.byteutility.dev.quickfill.data.local.AppMetadata
 import com.byteutility.dev.quickfill.data.local.Snippet
 import com.byteutility.dev.quickfill.data.local.SnippetDao
-import com.byteutility.dev.quickfill.data.local.SnippetWithMetadata
-import com.byteutility.dev.quickfill.di.IoDispatcher
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
 interface SnippetRepository {
-    fun getSnippetsStream(): Flow<List<Snippet>>
-    fun getSnippetsByCategoryStream(category: String): Flow<List<Snippet>>
-    fun getSnippetsForPackageStream(packageName: String): Flow<List<Snippet>>
-    fun getGlobalSnippetsForCategoryStream(category: String): Flow<List<Snippet>>
-    fun getKnownPackagesStream(): Flow<List<String>>
-    fun getAppMetadataStream(packageName: String): Flow<AppMetadata?>
-    suspend fun getSnippetsForAutofill(packageName: String, category: String): List<SnippetWithMetadata>
-    suspend fun getSnippetById(id: Int): Snippet?
-    suspend fun insertSnippet(snippet: Snippet)
+    fun getAllSnippets(): Flow<List<Snippet>>
+    fun searchSnippets(query: String): Flow<List<Snippet>>
+    suspend fun getSnippetBySlot(slot: Int): Snippet?
+    fun observeSnippetBySlot(slot: Int): Flow<Snippet?>
+    suspend fun getSnippetById(id: Long): Snippet?
+    suspend fun saveSnippet(snippet: Snippet): Long
     suspend fun deleteSnippet(snippet: Snippet)
-    suspend fun saveAppMetadataFromSystem(packageName: String): AppMetadata?
+    suspend fun togglePin(snippet: Snippet)
+    suspend fun assignQuickSlot(snippetId: Long, slot: Int)
+    suspend fun clearQuickSlot(slot: Int)
 }
 
 @Singleton
 class DefaultSnippetRepository @Inject constructor(
-    private val snippetDao: SnippetDao,
-    @ApplicationContext private val context: Context,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    private val snippetDao: SnippetDao
 ) : SnippetRepository {
 
-    override fun getSnippetsStream(): Flow<List<Snippet>> = snippetDao.getSnippetsStream()
+    override fun getAllSnippets(): Flow<List<Snippet>> = snippetDao.getAllSnippets()
 
-    override fun getSnippetsByCategoryStream(category: String): Flow<List<Snippet>> = 
-        snippetDao.getSnippetsByCategoryStream(category)
+    override fun searchSnippets(query: String): Flow<List<Snippet>> =
+        if (query.isBlank()) snippetDao.getAllSnippets() else snippetDao.searchSnippets(query)
 
-    override fun getSnippetsForPackageStream(packageName: String): Flow<List<Snippet>> = 
-        snippetDao.getSnippetsForPackageStream(packageName)
+    override suspend fun getSnippetBySlot(slot: Int): Snippet? = snippetDao.getSnippetBySlot(slot)
 
-    override fun getGlobalSnippetsForCategoryStream(category: String): Flow<List<Snippet>> =
-        snippetDao.getGlobalSnippetsForCategoryStream(category)
+    override fun observeSnippetBySlot(slot: Int): Flow<Snippet?> = snippetDao.observeSnippetBySlot(slot)
 
-    override fun getKnownPackagesStream(): Flow<List<String>> = 
-        snippetDao.getKnownPackagesStream()
+    override suspend fun getSnippetById(id: Long): Snippet? = snippetDao.getSnippetById(id)
 
-    override fun getAppMetadataStream(packageName: String): Flow<AppMetadata?> =
-        snippetDao.getAppMetadataStream(packageName)
-
-    override suspend fun getSnippetsForAutofill(
-        packageName: String,
-        category: String
-    ): List<SnippetWithMetadata> =
-        snippetDao.getSnippetsForAutofill(packageName, category)
-
-    override suspend fun getSnippetById(id: Int): Snippet? = snippetDao.getSnippetById(id)
-
-    override suspend fun insertSnippet(snippet: Snippet) {
-        snippetDao.insertSnippet(snippet)
+    override suspend fun saveSnippet(snippet: Snippet): Long {
+        return if (snippet.id == 0L) {
+            snippetDao.insertSnippet(snippet.copy(updatedAt = System.currentTimeMillis()))
+        } else {
+            snippetDao.updateSnippet(snippet.copy(updatedAt = System.currentTimeMillis()))
+            snippet.id
+        }
     }
 
     override suspend fun deleteSnippet(snippet: Snippet) {
         snippetDao.deleteSnippet(snippet)
     }
 
-    /**
-     * ARCHITECTURAL DECISION: Fetch and store system metadata locally.
-     * This bypasses Android 11+ Package Visibility restrictions for future lookups
-     * and ensures the app works without QUERY_ALL_PACKAGES.
-     */
-    override suspend fun saveAppMetadataFromSystem(packageName: String): AppMetadata? {
-        return withContext(ioDispatcher) {
-            runCatching {
-                val pm = context.packageManager
-                val info = pm.getApplicationInfo(packageName, 0)
-                val label = pm.getApplicationLabel(info).toString()
-                val icon = pm.getApplicationIcon(info).toBitmap()
-                
-                // PERFORMANCE DECISION: Downsample the icon before saving.
-                // Icons can be 192x192 (or larger with adaptive icons). 
-                // We shrink it to 128x128 for a good balance of quality vs DB size.
-                val scaledIcon = Bitmap.createScaledBitmap(icon, 128, 128, true)
-                val stream = ByteArrayOutputStream()
-                scaledIcon.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                
-                val metadata = AppMetadata(
-                    packageName = packageName,
-                    label = label,
-                    iconBlob = stream.toByteArray()
-                )
-                snippetDao.insertAppMetadata(metadata)
-                metadata
-            }.getOrNull()
+    override suspend fun togglePin(snippet: Snippet) {
+        snippetDao.updateSnippet(
+            snippet.copy(
+                isPinned = !snippet.isPinned,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    override suspend fun assignQuickSlot(snippetId: Long, slot: Int) {
+        if (slot in 1..3) {
+            snippetDao.clearSlot(slot)
+            snippetDao.assignSlot(snippetId, slot)
         }
+    }
+
+    override suspend fun clearQuickSlot(slot: Int) {
+        snippetDao.clearSlot(slot)
     }
 }
