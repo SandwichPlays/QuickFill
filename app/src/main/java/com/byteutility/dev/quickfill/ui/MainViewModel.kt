@@ -8,7 +8,6 @@ import com.byteutility.dev.quickfill.data.repository.SnippetRepository
 import com.byteutility.dev.quickfill.service.BaseSlotTileService
 import com.byteutility.dev.quickfill.util.ClipboardHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,9 +32,6 @@ class MainViewModel @Inject constructor(
 
     private val _themeMode = MutableStateFlow(AppThemeMode.SYSTEM)
     val themeMode: StateFlow<AppThemeMode> = _themeMode.asStateFlow()
-
-    private val _copiedSnippetId = MutableStateFlow<Long?>(null)
-    val copiedSnippetId: StateFlow<Long?> = _copiedSnippetId.asStateFlow()
 
     val snippets: StateFlow<List<Snippet>> = repository.getAllSnippets()
         .combine(_searchQuery) { list, query ->
@@ -69,14 +65,6 @@ class MainViewModel @Inject constructor(
             text = snippet.content,
             showToast = true
         )
-
-        viewModelScope.launch {
-            _copiedSnippetId.value = snippet.id
-            delay(1200)
-            if (_copiedSnippetId.value == snippet.id) {
-                _copiedSnippetId.value = null
-            }
-        }
     }
 
     fun saveSnippet(

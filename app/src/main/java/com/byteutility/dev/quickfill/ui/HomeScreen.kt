@@ -1,10 +1,7 @@
 package com.byteutility.dev.quickfill.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,11 +50,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -76,6 +73,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.byteutility.dev.quickfill.data.local.Snippet
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 val AvailableIcons = listOf(
@@ -100,7 +98,6 @@ fun HomeScreen(
     val snippets by viewModel.snippets.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
-    val copiedId by viewModel.copiedSnippetId.collectAsState()
 
     var editingSnippet by remember { mutableStateOf<Snippet?>(null) }
     var isSheetOpen by remember { mutableStateOf(false) }
@@ -128,9 +125,9 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 18.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Top Header Bar
             Row(
@@ -155,18 +152,20 @@ fun HomeScreen(
                 IconButton(
                     onClick = { viewModel.toggleTheme() },
                     modifier = Modifier
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Icon(
                         imageVector = if (themeMode == AppThemeMode.DARK) Icons.Default.LightMode else Icons.Default.DarkMode,
                         contentDescription = "Toggle Theme",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Search Bar
             OutlinedTextField(
@@ -184,13 +183,14 @@ fun HomeScreen(
                     Icon(
                         Icons.Default.Search,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
                     )
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                            Icon(Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
                         }
                     }
                 },
@@ -204,12 +204,12 @@ fun HomeScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Quick Panel Tile Slots Header
             QuickSlotStatusBanner(snippets = snippets)
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Snippets Content List
             if (snippets.isEmpty()) {
@@ -223,13 +223,16 @@ fun HomeScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 96.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 90.dp)
                 ) {
-                    items(snippets, key = { it.id }) { snippet ->
+                    items(
+                        items = snippets,
+                        key = { it.id },
+                        contentType = { "snippet" }
+                    ) { snippet ->
                         SnippetButtonCard(
                             snippet = snippet,
-                            isCopied = copiedId == snippet.id,
                             onCopy = { viewModel.copySnippet(snippet) },
                             onEdit = {
                                 editingSnippet = snippet
@@ -280,7 +283,6 @@ fun HomeScreen(
 @Composable
 fun SnippetButtonCard(
     snippet: Snippet,
-    isCopied: Boolean,
     onCopy: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -288,25 +290,31 @@ fun SnippetButtonCard(
     onAssignSlot: (Int) -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    var isCopied by remember { mutableStateOf(false) }
 
-    Surface(
+    LaunchedEffect(isCopied) {
+        if (isCopied) {
+            delay(1000)
+            isCopied = false
+        }
+    }
+
+    val cardShape = RoundedCornerShape(14.dp)
+    val borderColor = if (isCopied) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onCopy() },
-        color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(
-            width = if (isCopied) 1.5.dp else 1.dp,
-            color = if (isCopied) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline
-        ),
-        tonalElevation = if (snippet.isPinned) 3.dp else 1.dp
+            .clip(cardShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, borderColor, cardShape)
+            .clickable {
+                isCopied = true
+                onCopy()
+            }
+            .padding(12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -316,23 +324,22 @@ fun SnippetButtonCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    // Custom Icon
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.size(32.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = getIconVector(snippet.iconName),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = getIconVector(snippet.iconName),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
 
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     if (snippet.isPinned) {
                         Icon(
@@ -340,7 +347,7 @@ fun SnippetButtonCard(
                             contentDescription = "Pinned",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
-                                .size(15.dp)
+                                .size(14.dp)
                                 .padding(end = 4.dp)
                         )
                     }
@@ -354,37 +361,38 @@ fun SnippetButtonCard(
                     )
 
                     if (snippet.quickSlot in 1..3) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "Slot ${snippet.quickSlot}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     }
                 }
 
-                // Copy indicator badge + Options menu
+                // Copy badge + menu button
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isCopied) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.padding(end = 4.dp)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (isCopied) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
                                 contentDescription = "Copy",
                                 tint = if (isCopied) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
@@ -399,13 +407,13 @@ fun SnippetButtonCard(
                     Box {
                         IconButton(
                             onClick = { menuExpanded = true },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(30.dp)
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
                                 contentDescription = "Options",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
 
@@ -476,24 +484,25 @@ fun SnippetButtonCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Paste Box Text Preview
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .padding(8.dp)
             ) {
                 Text(
                     text = snippet.content,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 13.sp
+                        fontSize = 12.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(10.dp)
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -506,23 +515,27 @@ fun QuickSlotStatusBanner(snippets: List<Snippet>) {
     val slot2 = snippets.firstOrNull { it.quickSlot == 2 }
     val slot3 = snippets.firstOrNull { it.quickSlot == 3 }
 
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.fillMaxWidth()
+    val bannerShape = RoundedCornerShape(12.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(bannerShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .border(0.5.dp, MaterialTheme.colorScheme.outline, bannerShape)
+            .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Column {
             Text(
                 text = "Android Quick Panel Tiles",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 SlotPill(slotNumber = 1, snippet = slot1, modifier = Modifier.weight(1f))
                 SlotPill(slotNumber = 2, snippet = slot2, modifier = Modifier.weight(1f))
@@ -534,33 +547,32 @@ fun QuickSlotStatusBanner(snippets: List<Snippet>) {
 
 @Composable
 fun SlotPill(slotNumber: Int, snippet: Snippet?, modifier: Modifier = Modifier) {
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = if (snippet != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline),
+    val pillShape = RoundedCornerShape(8.dp)
+    Box(
         modifier = modifier
+            .clip(pillShape)
+            .background(if (snippet != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+            .border(0.5.dp, MaterialTheme.colorScheme.outline, pillShape)
+            .padding(vertical = 5.dp, horizontal = 6.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(vertical = 6.dp, horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = if (snippet != null) getIconVector(snippet.iconName) else Icons.Default.ContentCopy,
                 contentDescription = null,
                 tint = if (snippet != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(14.dp)
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(4.dp))
             Column {
                 Text(
                     text = "Slot $slotNumber",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = snippet?.title ?: "Unassigned",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = if (snippet != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -575,16 +587,16 @@ fun EmptySnippetView(isSearching: Boolean, onAddClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 70.dp),
+            .padding(top = 60.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Sort,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-            modifier = Modifier.size(60.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+            modifier = Modifier.size(52.dp)
         )
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = if (isSearching) "No matches found" else "No snippets yet",
             style = MaterialTheme.typography.titleMedium,
@@ -597,7 +609,7 @@ fun EmptySnippetView(isSearching: Boolean, onAddClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (!isSearching) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             TextButton(onClick = onAddClick) {
                 Text("+ Add New Snippet", fontWeight = FontWeight.SemiBold)
             }
@@ -619,8 +631,8 @@ fun SnippetEditSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 22.dp)
-            .padding(bottom = 32.dp)
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 28.dp)
     ) {
         Text(
             text = if (existingSnippet == null) "New Snippet" else "Edit Snippet",
@@ -628,108 +640,108 @@ fun SnippetEditSheet(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
             label = { Text("Title / Label") },
-            placeholder = { Text("e.g. Work Email, Home Address, IBAN") },
+            placeholder = { Text("e.g. Work Email, Address, Link") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(12.dp)
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedTextField(
             value = content,
             onValueChange = { content = it },
             label = { Text("Text Content (to copy)") },
-            placeholder = { Text("Enter text to copy...") },
+            placeholder = { Text("Enter text...") },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
+                .height(110.dp),
             shape = RoundedCornerShape(12.dp)
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Icon Selector
         Text(
             text = "Tile & Card Icon",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             AvailableIcons.forEach { (iconKey, iconVector) ->
                 val isSelected = selectedIcon == iconKey
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                val iconShape = RoundedCornerShape(8.dp)
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
-                        .clickable { selectedIcon = iconKey }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = iconVector,
-                            contentDescription = iconKey,
-                            tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                        .height(40.dp)
+                        .clip(iconShape)
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                         )
-                    }
+                        .clickable { selectedIcon = iconKey },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = iconVector,
+                        contentDescription = iconKey,
+                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Quick Panel Tile Slot Selector
         Text(
             text = "Assign to Quick Panel Tile",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             listOf(0 to "None", 1 to "Slot 1", 2 to "Slot 2", 3 to "Slot 3").forEach { (slot, label) ->
                 val isSelected = selectedSlot == slot
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                val slotShape = RoundedCornerShape(8.dp)
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { selectedSlot = slot }
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.padding(vertical = 10.dp)
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        .clip(slotShape)
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                         )
-                    }
+                        .clickable { selectedSlot = slot }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -739,19 +751,23 @@ fun SnippetEditSheet(
                 Text("Cancel")
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(enabled = title.isNotBlank() && content.isNotBlank()) {
-                    onSave(title, content, selectedSlot, selectedIcon)
-                }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (title.isNotBlank() && content.isNotBlank()) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    )
+                    .clickable(enabled = title.isNotBlank() && content.isNotBlank()) {
+                        onSave(title, content, selectedSlot, selectedIcon)
+                    }
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
             ) {
                 Text(
                     text = "Save",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
