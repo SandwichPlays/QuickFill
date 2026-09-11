@@ -43,6 +43,10 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.Surface
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,13 +55,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -106,8 +108,6 @@ fun HomeScreen(
 
     var editingSnippet by remember { mutableStateOf<Snippet?>(null) }
     var isSheetOpen by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -256,34 +256,49 @@ fun HomeScreen(
         }
     }
 
-    // Modal Bottom Sheet for Add/Edit
+    // Bottom Sheet Dialog for Add/Edit (Zero-jitter keyboard handling)
     if (isSheetOpen) {
-        ModalBottomSheet(
+        Dialog(
             onDismissRequest = { isSheetOpen = false },
-            sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
-            SnippetEditSheet(
-                existingSnippet = editingSnippet,
-                onSave = { title, content, quickSlot, iconName ->
-                    viewModel.saveSnippet(
-                        id = editingSnippet?.id ?: 0L,
-                        title = title,
-                        content = content,
-                        quickSlot = quickSlot,
-                        iconName = iconName
-                    )
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        isSheetOpen = false
-                    }
-                },
-                onCancel = {
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        isSheetOpen = false
-                    }
-                }
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
             )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { isSheetOpen = false },
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .imePadding()
+                        .clickable(enabled = false) {},
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp
+                ) {
+                    SnippetEditSheet(
+                        existingSnippet = editingSnippet,
+                        onSave = { title, content, quickSlot, iconName ->
+                            viewModel.saveSnippet(
+                                id = editingSnippet?.id ?: 0L,
+                                title = title,
+                                content = content,
+                                quickSlot = quickSlot,
+                                iconName = iconName
+                            )
+                            isSheetOpen = false
+                        },
+                        onCancel = {
+                            isSheetOpen = false
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -639,10 +654,10 @@ fun SnippetEditSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
-            .padding(bottom = 28.dp)
+            .padding(top = 20.dp, bottom = 24.dp)
+            .navigationBarsPadding()
     ) {
         Text(
             text = if (existingSnippet == null) "New Snippet" else "Edit Snippet",
