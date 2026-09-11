@@ -30,8 +30,8 @@ class MainViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _themeMode = MutableStateFlow(AppThemeMode.SYSTEM)
-    val themeMode: StateFlow<AppThemeMode> = _themeMode.asStateFlow()
+    private val _isDarkMode = MutableStateFlow(true)
+    val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
     val snippets: StateFlow<List<Snippet>> = repository.getAllSnippets()
         .combine(_searchQuery) { list, query ->
@@ -51,11 +51,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun toggleTheme() {
-        _themeMode.value = when (_themeMode.value) {
-            AppThemeMode.SYSTEM -> AppThemeMode.DARK
-            AppThemeMode.DARK -> AppThemeMode.LIGHT
-            AppThemeMode.LIGHT -> AppThemeMode.SYSTEM
-        }
+        _isDarkMode.value = !_isDarkMode.value
     }
 
     fun copySnippet(snippet: Snippet) {

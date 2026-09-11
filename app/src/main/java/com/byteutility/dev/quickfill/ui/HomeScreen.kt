@@ -97,7 +97,7 @@ fun HomeScreen(
 ) {
     val snippets by viewModel.snippets.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val themeMode by viewModel.themeMode.collectAsState()
+    val isDark by viewModel.isDarkMode.collectAsState()
 
     var editingSnippet by remember { mutableStateOf<Snippet?>(null) }
     var isSheetOpen by remember { mutableStateOf(false) }
@@ -157,7 +157,7 @@ fun HomeScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Icon(
-                        imageVector = if (themeMode == AppThemeMode.DARK) Icons.Default.LightMode else Icons.Default.DarkMode,
+                        imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
                         contentDescription = "Toggle Theme",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)

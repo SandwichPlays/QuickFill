@@ -25,12 +25,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val themeMode by viewModel.themeMode.collectAsState()
-            val isDark = when (themeMode) {
-                AppThemeMode.DARK -> true
-                AppThemeMode.LIGHT -> false
-                AppThemeMode.SYSTEM -> isSystemInDarkTheme()
-            }
+            val isDark by viewModel.isDarkMode.collectAsState()
 
             QuickFillTheme(darkTheme = isDark) {
                 Surface(

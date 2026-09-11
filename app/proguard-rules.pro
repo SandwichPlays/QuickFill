@@ -7,3 +7,8 @@
 # Hilt rules
 -dontwarn dagger.hilt.**
 -keep class * extends dagger.hilt.android.internal.managers.** { *; }
+
+# Coroutines and Android
+-keepattributes *Annotation*
+-dontwarn kotlinx.coroutines.**
+-keep class kotlinx.coroutines.** { *; }
