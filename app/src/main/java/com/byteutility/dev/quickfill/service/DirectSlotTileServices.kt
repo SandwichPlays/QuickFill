@@ -11,6 +11,7 @@ import android.service.quicksettings.TileService
 import android.widget.Toast
 import com.byteutility.dev.quickfill.R
 import com.byteutility.dev.quickfill.data.repository.SnippetRepository
+import com.byteutility.dev.quickfill.ui.CopyTrampolineActivity
 import com.byteutility.dev.quickfill.ui.MainActivity
 import com.byteutility.dev.quickfill.util.ClipboardHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -83,17 +84,23 @@ abstract class BaseSlotTileService(
             }
 
             if (snippet != null) {
-                ClipboardHelper.copyToClipboard(
-                    context = this@BaseSlotTileService,
-                    label = snippet.title,
-                    text = snippet.content,
-                    showToast = true
-                )
-                Toast.makeText(
-                    this@BaseSlotTileService,
-                    "Copied: ${snippet.title}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                val intent = Intent(this@BaseSlotTileService, CopyTrampolineActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra(CopyTrampolineActivity.EXTRA_LABEL, snippet.title)
+                    putExtra(CopyTrampolineActivity.EXTRA_TEXT, snippet.content)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    val pendingIntent = PendingIntent.getActivity(
+                        this@BaseSlotTileService,
+                        slotNumber,
+                        intent,
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+                    startActivityAndCollapse(pendingIntent)
+                } else {
+                    @Suppress("DEPRECATION")
+                    startActivityAndCollapse(intent)
+                }
             } else {
                 Toast.makeText(
                     this@BaseSlotTileService,

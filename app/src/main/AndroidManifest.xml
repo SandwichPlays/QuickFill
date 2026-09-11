@@ -32,6 +32,14 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- Transparent Trampoline Activity for reliable foreground clipboard writes -->
+        <activity
+            android:name=".ui.CopyTrampolineActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- General Quick Picker Tile -->
         <service
             android:name=".service.QuickCopyTileService"
