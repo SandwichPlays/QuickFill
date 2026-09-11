@@ -8,18 +8,24 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.widget.Toast
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 object ClipboardHelper {
+
+    private val asyncScope = CoroutineScope(Dispatchers.Default)
 
     fun copyToClipboard(context: Context, label: String, text: String, showToast: Boolean = true) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
         val clip = ClipData.newPlainText(label.ifBlank { "QuickFill" }, text)
         clipboard.setPrimaryClip(clip)
 
-        performHaptic(context)
+        asyncScope.launch {
+            performHaptic(context)
+        }
 
-        // Android 13+ (API 33+) shows its own clipboard popup overlay, so only show toast on older versions if requested
-        if (showToast && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        if (showToast) {
             Toast.makeText(context, "Copied \"$label\" to clipboard", Toast.LENGTH_SHORT).show()
         }
     }
@@ -38,11 +44,9 @@ object ClipboardHelper {
                     vibrator?.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
                 } else {
                     @Suppress("DEPRECATION")
-                    vibrator?.vibrate(40)
+                    vibrator?.vibrate(30)
                 }
             }
-        } catch (_: Exception) {
-            // Haptic might be unavailable or disabled on some devices
-        }
+        } catch (_: Exception) {}
     }
 }

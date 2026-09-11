@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.byteutility.dev.quickfill.data.local.Snippet
 import com.byteutility.dev.quickfill.data.repository.SnippetRepository
+import com.byteutility.dev.quickfill.service.BaseSlotTileService
 import com.byteutility.dev.quickfill.util.ClipboardHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -33,7 +34,6 @@ class MainViewModel @Inject constructor(
     private val _themeMode = MutableStateFlow(AppThemeMode.SYSTEM)
     val themeMode: StateFlow<AppThemeMode> = _themeMode.asStateFlow()
 
-    // Holds the ID of the snippet that was just copied for visual micro-interaction
     private val _copiedSnippetId = MutableStateFlow<Long?>(null)
     val copiedSnippetId: StateFlow<Long?> = _copiedSnippetId.asStateFlow()
 
@@ -72,7 +72,7 @@ class MainViewModel @Inject constructor(
 
         viewModelScope.launch {
             _copiedSnippetId.value = snippet.id
-            delay(1500)
+            delay(1200)
             if (_copiedSnippetId.value == snippet.id) {
                 _copiedSnippetId.value = null
             }
@@ -98,12 +98,14 @@ class MainViewModel @Inject constructor(
             if (quickSlot in 1..3) {
                 repository.assignQuickSlot(if (id != 0L) id else savedId, quickSlot)
             }
+            BaseSlotTileService.requestAllTileUpdates(getApplication())
         }
     }
 
     fun deleteSnippet(snippet: Snippet) {
         viewModelScope.launch {
             repository.deleteSnippet(snippet)
+            BaseSlotTileService.requestAllTileUpdates(getApplication())
         }
     }
 
@@ -122,6 +124,7 @@ class MainViewModel @Inject constructor(
                 repository.assignQuickSlot(snippet.id, slot)
                 repository.saveSnippet(snippet.copy(quickSlot = slot))
             }
+            BaseSlotTileService.requestAllTileUpdates(getApplication())
         }
     }
 }

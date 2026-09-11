@@ -166,7 +166,7 @@ class QuickPickerActivity : ComponentActivity() {
                                                 }
 
                                                 Icon(
-                                                    imageVector = Icons.Default.ContentCopy,
+                                                    imageVector = getIconVector(snippet.iconName),
                                                     contentDescription = "Copy",
                                                     tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(20.dp)

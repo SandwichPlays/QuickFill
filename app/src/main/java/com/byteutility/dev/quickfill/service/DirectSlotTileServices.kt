@@ -1,6 +1,8 @@
 package com.byteutility.dev.quickfill.service
 
 import android.app.PendingIntent
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -48,7 +50,16 @@ abstract class BaseSlotTileService(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     tile.subtitle = snippet.content.take(18)
                 }
-                tile.icon = Icon.createWithResource(this@BaseSlotTileService, defaultIconRes)
+
+                val iconRes = when (snippet.iconName) {
+                    "email" -> R.drawable.ic_icon_email
+                    "phone" -> R.drawable.ic_icon_phone
+                    "key" -> R.drawable.ic_icon_key
+                    "link" -> R.drawable.ic_icon_link
+                    "star" -> R.drawable.ic_icon_star
+                    else -> defaultIconRes
+                }
+                tile.icon = Icon.createWithResource(this@BaseSlotTileService, iconRes)
                 tile.state = Tile.STATE_ACTIVE
             } else {
                 tile.label = "Slot $slotNumber"
@@ -104,6 +115,25 @@ abstract class BaseSlotTileService(
                     startActivityAndCollapse(intent)
                 }
             }
+        }
+    }
+
+    companion object {
+        fun requestAllTileUpdates(context: Context) {
+            try {
+                TileService.requestListeningState(
+                    context,
+                    ComponentName(context, Slot1TileService::class.java)
+                )
+                TileService.requestListeningState(
+                    context,
+                    ComponentName(context, Slot2TileService::class.java)
+                )
+                TileService.requestListeningState(
+                    context,
+                    ComponentName(context, Slot3TileService::class.java)
+                )
+            } catch (_: Exception) {}
         }
     }
 }
