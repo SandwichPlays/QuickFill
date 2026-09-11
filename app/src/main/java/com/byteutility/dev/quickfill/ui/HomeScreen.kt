@@ -42,11 +42,16 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.PushPin
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Surface
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -109,195 +114,215 @@ fun HomeScreen(
     var editingSnippet by remember { mutableStateOf<Snippet?>(null) }
     var isSheetOpen by remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets.statusBars,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    editingSnippet = null
-                    isSheetOpen = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Snippet")
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(12.dp))
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-            // Top Header Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "QuickFill",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "Tap any card to copy instantly",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+    BackHandler(enabled = isSheetOpen) {
+        keyboardController?.hide()
+        isSheetOpen = false
+    }
 
-                IconButton(
-                    onClick = { viewModel.toggleTheme() },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Icon(
-                        imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                        contentDescription = "Toggle Theme",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Search Bar
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.onSearchQueryChanged(it) },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text(
-                        "Search snippets...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Quick Panel Tile Slots Header
-            QuickSlotStatusBanner(snippets = snippets)
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Snippets Content List
-            if (snippets.isEmpty()) {
-                EmptySnippetView(
-                    isSearching = searchQuery.isNotEmpty(),
-                    onAddClick = {
+    Box(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.statusBars,
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = {
                         editingSnippet = null
                         isSheetOpen = true
-                    }
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .imePadding(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 90.dp)
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    items(
-                        items = snippets,
-                        key = { it.id },
-                        contentType = { "snippet" }
-                    ) { snippet ->
-                        SnippetButtonCard(
-                            snippet = snippet,
-                            onCopy = { viewModel.copySnippet(snippet) },
-                            onEdit = {
-                                editingSnippet = snippet
-                                isSheetOpen = true
-                            },
-                            onDelete = { viewModel.deleteSnippet(snippet) },
-                            onTogglePin = { viewModel.togglePin(snippet) },
-                            onAssignSlot = { slot -> viewModel.assignQuickSlot(snippet, slot) }
+                    Icon(Icons.Default.Add, contentDescription = "Add Snippet")
+                }
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Top Header Bar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "QuickFill",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "Tap any card to copy instantly",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { viewModel.toggleTheme() },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Icon(
+                            imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = "Toggle Theme",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Search Bar
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChanged(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text(
+                            "Search snippets...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Quick Panel Tile Slots Header
+                QuickSlotStatusBanner(snippets = snippets)
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Snippets Content List
+                if (snippets.isEmpty()) {
+                    EmptySnippetView(
+                        isSearching = searchQuery.isNotEmpty(),
+                        onAddClick = {
+                            editingSnippet = null
+                            isSheetOpen = true
+                        }
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .imePadding(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 90.dp)
+                    ) {
+                        items(
+                            items = snippets,
+                            key = { it.id },
+                            contentType = { "snippet" }
+                        ) { snippet ->
+                            SnippetButtonCard(
+                                snippet = snippet,
+                                onCopy = { viewModel.copySnippet(snippet) },
+                                onEdit = {
+                                    editingSnippet = snippet
+                                    isSheetOpen = true
+                                },
+                                onDelete = { viewModel.deleteSnippet(snippet) },
+                                onTogglePin = { viewModel.togglePin(snippet) },
+                                onAssignSlot = { slot -> viewModel.assignQuickSlot(snippet, slot) }
+                            )
+                        }
+                    }
+                }
             }
         }
-    }
 
-    // Bottom Sheet Dialog for Add/Edit (Zero-jitter keyboard handling)
-    if (isSheetOpen) {
-        Dialog(
-            onDismissRequest = { isSheetOpen = false },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false
-            )
+        // Dimmed Scrim with NO ripple on tap outside
+        AnimatedVisibility(
+            visible = isSheetOpen,
+            enter = fadeIn(),
+            exit = fadeOut()
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f))
-                    .clickable { isSheetOpen = false },
-                contentAlignment = Alignment.BottomCenter
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null // Disables weird ripple on background!
+                    ) {
+                        keyboardController?.hide()
+                        isSheetOpen = false
+                    }
+            )
+        }
+
+        // Sliding In-Layout Bottom Sheet (120 FPS, zero window destruction glitch)
+        AnimatedVisibility(
+            visible = isSheetOpen,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding()
+                    .clickable(enabled = false) {}, // prevent click-through to scrim
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp
             ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .imePadding()
-                        .clickable(enabled = false) {},
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 6.dp
-                ) {
-                    SnippetEditSheet(
-                        existingSnippet = editingSnippet,
-                        onSave = { title, content, quickSlot, iconName ->
-                            viewModel.saveSnippet(
-                                id = editingSnippet?.id ?: 0L,
-                                title = title,
-                                content = content,
-                                quickSlot = quickSlot,
-                                iconName = iconName
-                            )
-                            isSheetOpen = false
-                        },
-                        onCancel = {
-                            isSheetOpen = false
-                        }
-                    )
-                }
+                SnippetEditSheet(
+                    existingSnippet = editingSnippet,
+                    onSave = { title, content, quickSlot, iconName ->
+                        keyboardController?.hide()
+                        viewModel.saveSnippet(
+                            id = editingSnippet?.id ?: 0L,
+                            title = title,
+                            content = content,
+                            quickSlot = quickSlot,
+                            iconName = iconName
+                        )
+                        isSheetOpen = false
+                    },
+                    onCancel = {
+                        keyboardController?.hide()
+                        isSheetOpen = false
+                    }
+                )
             }
         }
     }
@@ -665,29 +690,51 @@ fun SnippetEditSheet(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
-
+        Text(
+            text = "Title / Label",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(4.dp))
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
-            label = { Text("Title / Label") },
             placeholder = { Text("e.g. Work Email, Address, Link") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+            )
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
+        Text(
+            text = "Text Content (to copy)",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(4.dp))
         OutlinedTextField(
             value = content,
             onValueChange = { content = it },
-            label = { Text("Text Content (to copy)") },
-            placeholder = { Text("Enter text...") },
+            placeholder = { Text("Enter text to copy...") },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(110.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+            )
         )
 
         Spacer(modifier = Modifier.height(12.dp))
