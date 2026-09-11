@@ -391,7 +391,7 @@ fun SnippetButtonCard(
 
                     if (snippet.isPinned) {
                         Icon(
-                            Icons.Filled.PushPin,
+                            Icons.Default.PushPin,
                             contentDescription = "Pinned",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
@@ -477,8 +477,9 @@ fun SnippetButtonCard(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        if (snippet.isPinned) Icons.Outlined.PushPin else Icons.Filled.PushPin,
-                                        contentDescription = null
+                                        Icons.Default.PushPin,
+                                        contentDescription = null,
+                                        tint = if (snippet.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             )
