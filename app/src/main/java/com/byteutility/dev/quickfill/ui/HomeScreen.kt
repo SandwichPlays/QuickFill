@@ -119,7 +119,7 @@ fun HomeScreen(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertiling
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
